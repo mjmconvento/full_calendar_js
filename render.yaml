@@ -1,0 +1,71 @@
+# Render Blueprint — Booking Calendar.
+# See ai_docs/deployment.md for the full walkthrough.
+#
+# One service. The app is server-rendered Twig plus a few ES modules, so there
+# is no separate front end to host: nginx inside this container serves the
+# AssetMapper output from public/assets itself. The database is Neon (managed
+# Postgres); Render's own free Postgres expires 30 days after creation, so it
+# is deliberately not used.
+services:
+    - type: web
+      name: booking-calendar
+      runtime: docker
+      plan: free
+      region: singapore
+
+      # Multi-stage build: Render builds the FINAL stage, which is `render` -
+      # nginx + php-fpm under supervisord, answering HTTP on $PORT. The `prod`
+      # stage speaks FastCGI on 9000 and would be unreachable here. Keep
+      # `render` last in the Dockerfile.
+      dockerfilePath: ./Dockerfile
+      dockerContext: .
+
+      # src/Controller/HealthController.php, served through php-fpm so a dead
+      # fpm fails the check instead of silently returning 502s. It touches
+      # neither the database nor the session, so the probe does not keep Neon's
+      # compute awake.
+      healthCheckPath: /healthz
+
+      envVars:
+          # Render injects PORT itself. Declared only to document that the image
+          # reads it: docker/php/entrypoint.sh renders it into the nginx vhost.
+          - key: PORT
+            value: 10000
+
+          - key: APP_ENV
+            value: prod
+          - key: APP_DEBUG
+            value: 0
+
+          # Verification emails leave through Brevo's HTTPS API, because free
+          # services cannot open outbound SMTP connections (ports 25/465/587).
+          # The key is prompted for below. See ai_docs/email-verification.md.
+          - key: MAILER_FROM
+            value: Booking Calendar <REPLACE-WITH-YOUR-VALIDATED-BREVO-SENDER@gmail.com>
+
+          # Prompted for on Blueprint sync and stored encrypted. Nothing
+          # sensitive and nothing environment-specific belongs in this file.
+          #
+          # APP_SECRET    openssl rand -hex 32. Signs the email verification
+          #               links and the remember-me cookie; set once, never
+          #               rotated casually (rotating invalidates both).
+          # DATABASE_URL  Neon DIRECT connection string in Doctrine form:
+          #               postgresql://USER:PASS@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?serverVersion=18&charset=utf8&sslmode=require
+          #               Direct, not "-pooler": the entrypoint runs the
+          #               migrations at boot and the session handler takes
+          #               advisory locks, neither of which survives PgBouncer's
+          #               transaction pooling. php-fpm here opens at most 4
+          #               connections, so pooling buys nothing.
+          # DEFAULT_URI   this service's own public URL, https://...onrender.com
+          #               - the origin the console-generated verification link
+          #               is signed for.
+          # MAILER_DSN    brevo+api://xkeysib-…@default  (the API key, not the
+          #               SMTP key)
+          - key: APP_SECRET
+            sync: false
+          - key: DATABASE_URL
+            sync: false
+          - key: DEFAULT_URI
+            sync: false
+          - key: MAILER_DSN
+            sync: false

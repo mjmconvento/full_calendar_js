@@ -1,0 +1,43 @@
+# Keep the build context small and the image reproducible.
+# NOTE: docker/ must stay in the context — the Dockerfile copies php.ini,
+# opcache.ini, www.conf and entrypoint.sh from it.
+
+.git
+.git*
+.github
+
+# Rebuilt inside the image (composer install / asset-map:compile).
+vendor/
+public/assets/
+var/
+# assets/vendor/ is deliberately KEPT: the importmap dependencies are committed,
+# so `importmap:install` during the build has nothing to download.
+
+# No Node in this project; these only exist as leftovers from the 2016 app.
+node_modules/
+bower_components/
+
+# Host-local configuration and secrets must never be baked in.
+.env.local
+.env.local.php
+.env.*.local
+
+# Compose / tooling files are read by the docker CLI, not needed in the image.
+compose.yaml
+compose.override.yaml
+compose.*.yaml
+docker-compose*.yml
+docker-compose*.yaml
+Makefile
+.dockerignore
+
+# Editor / OS noise and docs.
+.idea/
+.vscode/
+.DS_Store
+*.log
+*.md
+
+# tests/ is deliberately LEFT in the context: the dev container runs the suite
+# from the bind mount, and .dockerignore cannot be scoped per stage. The prod
+# stage deletes tests/ (and docker/, bower_components/) after COPY instead.

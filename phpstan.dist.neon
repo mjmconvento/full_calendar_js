@@ -1,0 +1,14 @@
+parameters:
+    level: 8
+    paths:
+        - src
+        - tests
+    excludePaths:
+        # Symfony's generated kernel glue: getAllowedEnvs() overrides a private
+        # method of MicroKernelTrait and is only ever called from inside that
+        # trait, which PHPStan cannot see - it reports the method as unused.
+        - src/Kernel.php
+    symfony:
+        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+    doctrine:
+        objectManagerLoader: tests/object-manager.php

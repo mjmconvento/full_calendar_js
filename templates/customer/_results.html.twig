@@ -1,0 +1,98 @@
+{# The directory card on its own. The full page includes it below the search
+   form; the page's script fetches it again - same URL, fragment response -
+   when the operator types or moves to another page. See paged-results.js. #}
+<div class="card">
+    <div class="card-header">
+        <h2>{{ query ? 'Matches' : 'All customers' }}</h2>
+        <span class="text-quiet small">
+            {%- if query -%}
+                {{ total }} match{{ total == 1 ? '' : 'es' }} for “{{ query }}”
+            {%- else -%}
+                {{ total }} {{ total == 1 ? 'person' : 'people' }} on file
+            {%- endif -%}
+            {%- if page_count > 1 %} · page {{ page }} of {{ page_count }}{% endif %}
+        </span>
+    </div>
+
+    {% if customers is empty %}
+        <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true">👤</div>
+            {% if query %}
+                <p class="empty-state-title">Nobody matches “{{ query }}”</p>
+                <p class="empty-state-text">Try a surname, a phone number, or part of an email address.</p>
+            {% else %}
+                <p class="empty-state-title">No customers yet</p>
+                <p class="empty-state-text">
+                    Profiles are created as bookings are taken on the
+                    <a href="{{ path('calendar') }}">calendar</a>.
+                </p>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Phone</th>
+                        <th scope="col">Email</th>
+                        <th scope="col" class="text-end" style="width: 6rem">Bookings</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                        <tr>
+                            <td>
+                                <a class="row-title" href="{{ path('app_customer', {id: customer.id}) }}">
+                                    {{ customer.fullName }}
+                                </a>
+                            </td>
+                            <td class="text-nowrap">
+                                {% if customer.phone %}
+                                    <a class="contact-link" href="tel:{{ customer.phone }}">{{ customer.phone }}</a>
+                                {% else %}
+                                    <span class="text-quiet">Needs a number</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if customer.email %}
+                                    <a class="contact-link" href="mailto:{{ customer.email }}">{{ customer.email }}</a>
+                                {% else %}
+                                    <span class="absent">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end numeric">
+                                <span class="badge badge-count">{{ counts[customer.id] ?? 0 }}</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_count > 1 %}
+            {# The query travels with the page number: paging a search must not
+               quietly turn into a page of the whole directory. #}
+            {% set page_query = query is empty ? {} : {q: query} %}
+            <div class="card-footer">
+                <nav aria-label="Customer pages">
+                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                        <li class="page-item {{ page <= 1 ? 'disabled' }}">
+                            <a class="page-link" href="{{ path('app_customers', page_query|merge({page: page - 1})) }}">Previous</a>
+                        </li>
+
+                        {% for number in 1..page_count %}
+                            <li class="page-item {{ number == page ? 'active' }}">
+                                <a class="page-link" href="{{ path('app_customers', page_query|merge({page: number})) }}">{{ number }}</a>
+                            </li>
+                        {% endfor %}
+
+                        <li class="page-item {{ page >= page_count ? 'disabled' }}">
+                            <a class="page-link" href="{{ path('app_customers', page_query|merge({page: page + 1})) }}">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>

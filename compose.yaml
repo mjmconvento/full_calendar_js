@@ -1,0 +1,80 @@
+# Booking calendar — base (production-shaped) stack.
+#
+# Run these yourself; this project never starts containers on your behalf.
+#   docker compose build
+#   docker compose up -d
+#
+# compose.override.yaml is picked up automatically and turns this into a dev
+# stack (bind mounts, APP_ENV=dev). Use `-f compose.yaml` alone for prod shape.
+#
+# Overridable host ports (put them in a .env file next to this one):
+#   NGINX_PORT (default 8080), POSTGRES_PORT (default 15432)
+
+name: booking-calendar
+
+services:
+  php:
+    build:
+      context: .
+      target: prod
+    container_name: booking-calendar-php
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: 0
+      # Local-dev throwaway secret. Generate a real one for any real deployment:
+      #   APP_SECRET=$(openssl rand -hex 32) docker compose up -d
+      APP_SECRET: "${APP_SECRET:-2b7f4a1c9e6d5083af1b4c7d9e0f2a63}"
+      DATABASE_URL: "postgresql://booking_calendar:booking_calendar@database:5432/booking_calendar?serverVersion=18&charset=utf8"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - booking-calendar
+
+  nginx:
+    build:
+      context: .
+      target: web
+    container_name: booking-calendar-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    depends_on:
+      - php
+    networks:
+      - booking-calendar
+
+  database:
+    # The same engine production runs on (Neon is managed Postgres), so the
+    # migrations and every query are exercised against the real dialect here.
+    image: postgres:18-alpine
+    container_name: booking-calendar-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: booking_calendar
+      POSTGRES_USER: booking_calendar
+      POSTGRES_PASSWORD: booking_calendar
+    ports:
+      # Non-default host port so this stack cannot collide with another local Postgres.
+      - "${POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql
+      # Creates the booking_calendar_test database the suite uses when pointed
+      # at this service (see .env.test); runs on first init of the volume only.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booking_calendar -d booking_calendar"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - booking-calendar
+
+volumes:
+  db_data:
+
+networks:
+  booking-calendar:
+    driver: bridge

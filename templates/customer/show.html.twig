@@ -1,0 +1,232 @@
+{% extends 'base.html.twig' %}
+
+{% set editing = errors is not empty or form is not null %}
+{% set values = form ?? {
+    fullName: customer.fullName,
+    phone: customer.phone,
+    email: customer.email,
+    notes: customer.notes,
+} %}
+
+{% block title %}{{ customer.fullName }} · Booking Calendar{% endblock %}
+
+{% block body %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small mb-2">
+            <li class="breadcrumb-item"><a href="{{ path('app_customers') }}">Customers</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ customer.fullName }}</li>
+        </ol>
+    </nav>
+
+    <div class="page-head">
+        <div class="d-flex align-items-center gap-3">
+            <span class="avatar" style="height: 3rem; width: 3rem; font-size: 1.125rem" aria-hidden="true">
+                {{ customer.fullName|slice(0, 1) }}
+            </span>
+            <div>
+                <h1 class="page-title">{{ customer.fullName }}</h1>
+                <p class="page-meta">
+                    {{ upcoming_count }} upcoming ·
+                    {{ bookings|length }} booking{{ bookings|length == 1 ? '' : 's' }} on file
+                </p>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            {% if customer.phone %}
+                <a class="btn btn-sm btn-outline-secondary" href="tel:{{ customer.phone }}">Call</a>
+            {% endif %}
+            {% if customer.email %}
+                <a class="btn btn-sm btn-outline-secondary" href="mailto:{{ customer.email }}">Email</a>
+            {% endif %}
+            <a class="btn btn-sm btn-primary" href="{{ path('calendar') }}">Book a day</a>
+        </div>
+    </div>
+
+    {% if errors._ is defined %}
+        <div class="alert alert-danger" role="alert">{{ errors._ }}</div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-7">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h2>Contact details</h2>
+                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#profile-form"
+                            aria-expanded="{{ editing ? 'true' : 'false' }}" aria-controls="profile-form">
+                        Edit profile
+                    </button>
+                </div>
+
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3 fw-normal text-quiet">Phone</dt>
+                        <dd class="col-sm-9 mb-2">
+                            <a class="contact-link" href="tel:{{ customer.phone }}">{{ customer.phone }}</a>
+                        </dd>
+
+                        <dt class="col-sm-3 fw-normal text-quiet">Email</dt>
+                        <dd class="col-sm-9 mb-2">
+                            {% if customer.email %}
+                                <a class="contact-link" href="mailto:{{ customer.email }}">{{ customer.email }}</a>
+                            {% else %}
+                                <span class="absent">Not on file</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-3 fw-normal text-quiet">Added</dt>
+                        <dd class="col-sm-9 mb-2">{{ customer.createdAt|date('j F Y') }}</dd>
+
+                        <dt class="col-sm-3 fw-normal text-quiet">Last updated</dt>
+                        <dd class="col-sm-9 mb-0">{{ customer.updatedAt|date('j F Y, H:i') }}</dd>
+                    </dl>
+                </div>
+
+                <div class="collapse {{ editing ? 'show' }}" id="profile-form">
+                    <div class="card-body border-top">
+                        <form method="post" action="{{ path('app_customer', {id: customer.id}) }}" novalidate>
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token('customer-' ~ customer.id) }}">
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="fullName" class="form-label">
+                                        Name <span class="required-mark" aria-hidden="true">*</span>
+                                    </label>
+                                    <input type="text" id="fullName" name="fullName" value="{{ values.fullName }}"
+                                           class="form-control {{ errors.fullName is defined ? 'is-invalid' }}"
+                                           maxlength="120" required>
+                                    {% if errors.fullName is defined %}
+                                        <div class="invalid-feedback">{{ errors.fullName }}</div>
+                                    {% else %}
+                                        <div class="form-text">&nbsp;</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-sm-6">
+                                    <label for="phone" class="form-label">
+                                        Phone <span class="required-mark" aria-hidden="true">*</span>
+                                    </label>
+                                    <input type="tel" id="phone" name="phone" value="{{ values.phone }}"
+                                           class="form-control {{ errors.phone is defined ? 'is-invalid' }}"
+                                           maxlength="40" required>
+                                    {% if errors.phone is defined %}
+                                        <div class="invalid-feedback">{{ errors.phone }}</div>
+                                    {% else %}
+                                        <div class="form-text">&nbsp;</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-sm-6">
+                                    <label for="email" class="form-label">
+                                        Email
+                                    </label>
+                                    <input type="email" id="email" name="email" value="{{ values.email }}"
+                                           class="form-control {{ errors.email is defined ? 'is-invalid' }}"
+                                           maxlength="180">
+                                    {% if errors.email is defined %}
+                                        <div class="invalid-feedback">{{ errors.email }}</div>
+                                    {% else %}
+                                        <div class="form-text">&nbsp;</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="notes" class="form-label">
+                                        Notes
+                                    </label>
+                                    <textarea id="notes" name="notes" rows="3" maxlength="2000"
+                                              class="form-control {{ errors.notes is defined ? 'is-invalid' }}"
+                                              placeholder="Allergies, a preferred table, how they like to be reached">{{ values.notes }}</textarea>
+                                    {% if errors.notes is defined %}
+                                        <div class="invalid-feedback">{{ errors.notes }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <p class="form-text mt-3 mb-2">
+                                <span class="required-mark">*</span> required. This form is the whole
+                                record: clearing an optional field removes it.
+                            </p>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Save profile</button>
+                                <button type="reset" class="btn btn-outline-secondary"
+                                        data-bs-toggle="collapse" data-bs-target="#profile-form">Discard</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h2>Notes</h2>
+                </div>
+                <div class="card-body">
+                    {% if customer.notes %}
+                        <p class="mb-0" style="white-space: pre-wrap">{{ customer.notes }}</p>
+                    {% else %}
+                        <p class="text-quiet mb-0">
+                            Nothing noted yet. Use <em>Edit profile</em> to add something worth remembering.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Bookings</h2>
+            <span class="text-quiet small">Oldest first</span>
+        </div>
+
+        {% if bookings is empty %}
+            <div class="empty-state">
+                <div class="empty-state-icon" aria-hidden="true">🗓️</div>
+                <p class="empty-state-title">No bookings on file</p>
+                <p class="empty-state-text">
+                    Pick a day on the <a href="{{ path('calendar') }}">calendar</a> and search for this customer.
+                </p>
+            </div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col" style="width: 7rem">Time</th>
+                            <th scope="col">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings %}
+                            {% set is_past = booking.date < today()|date('Y-m-d') %}
+                            <tr>
+                                <td class="text-nowrap">
+                                    <a class="row-title" href="{{ path('app_day', {date: booking.date}) }}">
+                                        {{ booking.date|date('D, j M Y') }}
+                                    </a>
+                                    {% if is_past %}
+                                        <span class="badge badge-muted ms-1">past</span>
+                                    {% endif %}
+                                </td>
+                                <td class="numeric text-nowrap">
+                                    {% if booking.time %}
+                                        {{ booking.time|date('g:i A') }}
+                                    {% else %}
+                                        <span class="absent">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ booking.details ?? '' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

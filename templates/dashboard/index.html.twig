@@ -1,0 +1,125 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard · Booking Calendar{% endblock %}
+
+{% block body %}
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-meta">
+                {{ today()|date('l, j F Y') }} ·
+                <a href="{{ path('app_customers') }}">{{ stats.customerCount }} customer{{ stats.customerCount == 1 ? '' : 's' }}</a>
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-secondary" href="{{ path('calendar') }}">Open calendar</a>
+            <a class="btn btn-sm btn-primary" href="{{ path('app_day', {date: stats.today|date('Y-m-d')}) }}">
+                Manage today
+            </a>
+        </div>
+    </div>
+
+    {# One panel of figures rather than five cards, and every cell counts the same
+       thing - bookings - so the row can be read as one scale rather than five
+       unrelated numbers. See .metrics in app.css. #}
+    <div class="card mb-4">
+        <div class="metrics">
+            <div class="metric metric-hero">
+                <div class="metric-label">Today</div>
+                <div class="metric-value">{{ stats.todayBooked }}</div>
+                <div class="metric-hint">bookings</div>
+            </div>
+
+            <div class="metric">
+                <div class="metric-label">Tomorrow</div>
+                <div class="metric-value">{{ stats.tomorrowBooked }}</div>
+                <div class="metric-hint">bookings</div>
+            </div>
+
+            <div class="metric">
+                <div class="metric-label">Next 7 days</div>
+                <div class="metric-value">{{ stats.weekBooked }}</div>
+                <div class="metric-hint">bookings</div>
+            </div>
+
+            <div class="metric">
+                <div class="metric-label">Upcoming</div>
+                <div class="metric-value">{{ stats.upcomingBooked }}</div>
+                <div class="metric-hint">bookings</div>
+            </div>
+
+            <div class="metric">
+                <div class="metric-label">All time</div>
+                <div class="metric-value">{{ stats.totalBooked }}</div>
+                <div class="metric-hint">bookings</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2>Today's bookings</h2>
+            <a class="small" href="{{ path('app_day', {date: stats.today|date('Y-m-d')}) }}">Open day view</a>
+        </div>
+
+        {% if today_schedule.isEmpty %}
+            <div class="empty-state">
+                <div class="empty-state-icon" aria-hidden="true">🗓️</div>
+                <p class="empty-state-title">Nothing booked today</p>
+                <p class="empty-state-text">Today is empty so far.</p>
+                <a class="btn btn-sm btn-primary mt-3" href="{{ path('app_day', {date: stats.today|date('Y-m-d')}) }}">
+                    Book today
+                </a>
+            </div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 7rem">Time</th>
+                            <th scope="col">Customer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reservation in today_schedule.reservations %}
+                            <tr>
+                                <td class="numeric text-nowrap">
+                                    {% if reservation.startsAt %}
+                                        <span class="fw-semibold">{{ reservation.formattedStartsAt }}</span>
+                                    {% else %}
+                                        <span class="absent">No time</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a class="row-title" href="{{ path('app_customer', {id: reservation.customer.id}) }}">
+                                        {{ reservation.customerName }}
+                                    </a>
+                                    <div class="row-sub">
+                                        {% if reservation.customerPhone %}
+                                            <a class="contact-link" href="tel:{{ reservation.customerPhone }}">{{ reservation.customerPhone }}</a>
+                                        {% else %}
+                                            {# A profile that predates the required-phone rule. #}
+                                            <span class="text-quiet">No phone number on file</span>
+                                        {% endif %}
+                                        {% if reservation.customerEmail %}
+                                            <span class="text-faint"> · </span>
+                                            <a class="contact-link" href="mailto:{{ reservation.customerEmail }}">{{ reservation.customerEmail }}</a>
+                                        {% endif %}
+                                        {% if reservation.details %}
+                                            <span class="text-faint"> · </span>{{ reservation.details }}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+
+    <div id="bookings-results">
+        {{ include('dashboard/_bookings.html.twig') }}
+    </div>
+{% endblock %}

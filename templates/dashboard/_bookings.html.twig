@@ -1,0 +1,105 @@
+{# The paged list on its own. The full page includes it inside
+   #bookings-results; the page's script fetches it again - same URL,
+   fragment response - when the operator moves between pages. See
+   paged-results.js. #}
+<div class="card">
+    <div class="card-header">
+        <h2>All bookings</h2>
+        <span class="text-quiet small">
+            {{ total }} booking{{ total == 1 ? '' : 's' }}
+            {%- if page_count > 1 %} · page {{ page }} of {{ page_count }}{% endif %}
+        </span>
+    </div>
+
+    {% if reservations is empty %}
+        <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true">📖</div>
+            <p class="empty-state-title">No bookings yet</p>
+            <p class="empty-state-text">
+                Pick a day on the <a href="{{ path('calendar') }}">calendar</a> to take the first one.
+            </p>
+        </div>
+    {% else %}
+        {# Date, time and customer only. Contact details sit under the name
+           rather than in a column of their own: as a separate column they
+           stranded the name at one edge and the number at the other, with a
+           dead gutter between. #}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col" style="width: 12rem">Date</th>
+                        <th scope="col" style="width: 7rem">Time</th>
+                        <th scope="col">Customer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reservation in reservations %}
+                        {% set day = reservation.reservedOn|date('Y-m-d') %}
+                        {% set is_past = day < today()|date('Y-m-d') %}
+                        <tr>
+                            <td class="text-nowrap">
+                                <a class="row-title" href="{{ path('app_day', {date: day}) }}">
+                                    {{ reservation.reservedOn|date('D, j M Y') }}
+                                </a>
+                                {% if is_past %}
+                                    <span class="badge badge-muted ms-1">past</span>
+                                {% endif %}
+                            </td>
+                            <td class="numeric text-nowrap">
+                                {% if reservation.startsAt %}
+                                    {{ reservation.formattedStartsAt }}
+                                {% else %}
+                                    <span class="absent">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a class="row-title" href="{{ path('app_customer', {id: reservation.customer.id}) }}">
+                                    {{ reservation.customerName }}
+                                </a>
+                                <div class="row-sub">
+                                    {% if reservation.customerPhone %}
+                                        <a class="contact-link" href="tel:{{ reservation.customerPhone }}">{{ reservation.customerPhone }}</a>
+                                    {% else %}
+                                        <span class="text-quiet">No phone number on file</span>
+                                    {% endif %}
+                                    {% if reservation.customerEmail %}
+                                        <span class="text-faint"> · </span>
+                                        <a class="contact-link" href="mailto:{{ reservation.customerEmail }}">{{ reservation.customerEmail }}</a>
+                                    {% endif %}
+                                    {% if reservation.details %}
+                                        {% set summary = reservation.details %}
+                                        <span class="text-faint"> · </span>
+                                        {{ summary|length > 70 ? summary|slice(0, 70) ~ '…' : summary }}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_count > 1 %}
+            <div class="card-footer">
+                <nav aria-label="Bookings pages">
+                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                        <li class="page-item {{ page <= 1 ? 'disabled' }}">
+                            <a class="page-link" href="{{ path('app_dashboard', {page: page - 1}) }}">Previous</a>
+                        </li>
+
+                        {% for number in 1..page_count %}
+                            <li class="page-item {{ number == page ? 'active' }}">
+                                <a class="page-link" href="{{ path('app_dashboard', {page: number}) }}">{{ number }}</a>
+                            </li>
+                        {% endfor %}
+
+                        <li class="page-item {{ page >= page_count ? 'disabled' }}">
+                            <a class="page-link" href="{{ path('app_dashboard', {page: page + 1}) }}">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>

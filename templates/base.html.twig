@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}Booking Calendar{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.05em%22 x=%220.1em%22 font-size=%22104%22>📅</text></svg>">
+
+        {% block stylesheets %}{% endblock %}
+
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body>
+        {% if app.user %}
+            {% set here = app.request.attributes.get('_route') %}
+
+            <header class="app-bar">
+                <div class="container d-flex align-items-center py-2">
+                    <a class="brand" href="{{ path('app_dashboard') }}">
+                        <span class="brand-mark" aria-hidden="true">📅</span>
+                        <span class="d-none d-sm-inline">Booking calendar</span>
+                    </a>
+
+                    {# aria-current is what the stylesheet keys the active pill
+                       off, so the state is announced as well as shown. #}
+                    <nav class="app-nav me-auto ms-2" aria-label="Main">
+                        <a href="{{ path('app_dashboard') }}"
+                           {{ here == 'app_dashboard' ? 'aria-current="page"' }}>Dashboard</a>
+                        <a href="{{ path('calendar') }}"
+                           {{ here == 'calendar' ? 'aria-current="page"' }}>Calendar</a>
+                        <a href="{{ path('app_day', {date: today()|date('Y-m-d')}) }}"
+                           {{ here == 'app_day' ? 'aria-current="page"' }}>Today</a>
+                        <a href="{{ path('app_customers') }}"
+                           {{ here in ['app_customers', 'app_customer'] ? 'aria-current="page"' }}>Customers</a>
+                    </nav>
+
+                    <div class="app-user">
+                        <span class="app-user-name d-none d-md-inline" title="{{ app.user.userIdentifier }}">
+                            {{ app.user.displayName }}
+                        </span>
+                        <span class="avatar d-none d-md-inline-flex" aria-hidden="true">
+                            {{ app.user.displayName|slice(0, 1) }}
+                        </span>
+
+                        {# POST, with a token: a GET sign-out can be triggered by
+                           any page that manages to load /logout as an image. #}
+                        <form method="post" action="{{ path('app_logout') }}">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Sign out</button>
+                        </form>
+                    </div>
+                </div>
+            </header>
+        {% endif %}
+
+        <main class="container {{ app.user ? 'py-4' : '' }} pb-5">
+            {% block flashes %}{{ include('_flashes.html.twig') }}{% endblock %}
+
+            {% block body %}{% endblock %}
+        </main>
+    </body>
+</html>

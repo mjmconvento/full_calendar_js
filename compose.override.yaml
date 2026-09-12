@@ -1,0 +1,59 @@
+# Booking calendar — development overlay (loaded automatically by `docker compose`).
+#
+# Difference from compose.yaml in one line: source is bind-mounted from the host
+# and the php container runs the `dev` stage, so no rebuild is needed to see a
+# code change. For the production shape, ignore this file explicitly:
+#   docker compose -f compose.yaml up -d
+
+services:
+  php:
+    build:
+      target: dev
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: 1
+      # Lets Xdebug (see `make xdebug-on`) reach the IDE on the host.
+      PHP_IDE_CONFIG: serverName=booking-calendar
+      # Verification emails land in Mailpit (http://localhost:18025) instead
+      # of going nowhere. `make test` overrides this back to null://null.
+      MAILER_DSN: smtp://mailer:1025
+      # Links printed by app:verification-link must be opened at this origin.
+      DEFAULT_URI: http://localhost:${NGINX_PORT:-8080}
+    extra_hosts:
+      # host.docker.internal exists on Docker Desktop; this makes it work on Linux too.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # `delegated` keeps writes host-authoritative and is markedly faster on
+      # macOS/Windows; it is a no-op on Linux.
+      - .:/var/www/html:delegated
+      # var/ stays container-only: host and container caches would otherwise
+      # fight over permissions and stale, env-specific compiled containers.
+      - app_var:/var/www/html/var
+
+  nginx:
+    volumes:
+      # Serve the host's public/ instead of the copy baked into the web image,
+      # so recompiled assets show up without a rebuild.
+      - ./public:/var/www/html/public:ro
+      # Directory mount masks the image's baked default.conf, so only app.conf
+      # is loaded — edit it on the host and `make restart`.
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+
+  # Catches every email the dev stack sends and shows it in a web inbox.
+  # Added by the symfony/mailer recipe; the network, the fixed UI port and the
+  # MAILER_DSN above are what make it reachable from php and from a browser.
+  mailer:
+    image: axllent/mailpit
+    container_name: booking-calendar-mailpit
+    ports:
+      # Non-default host port, like Postgres' 15432: another project's Mailpit
+      # is very likely already on 8025.
+      - "${MAILPIT_PORT:-18025}:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - booking-calendar
+
+volumes:
+  app_var:

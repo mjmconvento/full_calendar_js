@@ -1,0 +1,69 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sign in · Booking Calendar{% endblock %}
+
+{# Rendered inside the card instead, where the eye already is. #}
+{% block flashes %}{% endblock %}
+
+{% block body %}
+    <div class="auth-shell">
+        <div class="auth-card">
+            <div class="auth-head">
+                <span class="brand-mark" aria-hidden="true">📅</span>
+                <h1 class="auth-title">Sign in</h1>
+                <p class="auth-sub">Booking Calendar</p>
+            </div>
+
+            <div class="p-4">
+                {{ include('_flashes.html.twig') }}
+
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error }}
+                        {% if unverified %}
+                            {# The password matched, so the address is known to be
+                               waiting on its link: one click sends it again. #}
+                            <form method="post" action="{{ path('app_verify_email_resend') }}" class="mt-2">
+                                <input type="hidden" name="email" value="{{ email }}">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token('resend-verification') }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Send the link again</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <form method="post" action="{{ path('app_login') }}" novalidate>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Email address</label>
+                        <input type="email" id="username" name="_username" value="{{ email }}"
+                               class="form-control" autocomplete="username" required autofocus
+                               placeholder="name@example.com">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" name="_password"
+                               class="form-control" autocomplete="current-password" required>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input type="checkbox" id="remember_me" name="_remember_me" class="form-check-input" checked>
+                        <label for="remember_me" class="form-check-label small">
+                            Keep me signed in on this device
+                        </label>
+                    </div>
+
+                    {# The firewall's form_login authenticator checks this
+                       token before it looks at the credentials. #}
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                    <button type="submit" class="btn btn-primary w-100">Sign in</button>
+                </form>
+            </div>
+
+            <div class="card-footer text-center small">
+                No account yet? <a href="{{ path('app_register') }}">Create one</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

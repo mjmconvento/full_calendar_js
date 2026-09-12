@@ -1,0 +1,120 @@
+{#-
+    The customer fields of a booking form. Shared by the day page's "book this
+    day" form and every inline edit form on the same page, so the two can never
+    disagree about which fields a booking has.
+
+    Order is deliberate: the two required fields first, then the optional ones.
+    Someone taking a booking over the phone reads top to bottom and should not
+    have to skip anything to finish.
+
+    The name input doubles as the customer lookup: `data-customer-picker`
+    marks it, the hidden input beside it carries the chosen profile's id, and
+    assets/calendar/customer-picker.js wires the two together. Without that
+    script the markup is still a working form - the server matches the profile
+    by phone, email or name - which is why the results list ships hidden and
+    the script only ever reveals it.
+
+    Expects:
+      form        - App\Api\ReservationForm with the values to show
+      errors      - array<string, string> keyed by field name
+      prefix      - unique id prefix, a day can hold several edit forms
+      search_url  - the customer lookup endpoint
+      wide        - true to pair short fields two-up (default: one column)
+-#}
+{% set field = prefix ~ '-' %}
+{% set col = wide|default(false) ? 'col-12 col-sm-6' : 'col-12' %}
+{% set colFull = 'col-12' %}
+
+<div class="row g-3">
+    <div class="{{ col }}">
+        <label for="{{ field }}customer-name" class="form-label">
+            Customer <span class="required-mark" aria-hidden="true">*</span>
+        </label>
+
+        <div class="position-relative">
+            <input type="text" id="{{ field }}customer-name" name="customerName"
+                   value="{{ form.customerName }}"
+                   class="form-control {{ errors.customerName is defined ? 'is-invalid' }}"
+                   maxlength="120" required autocomplete="off"
+                   placeholder="Start typing to find an existing customer"
+                   role="combobox" aria-expanded="false" aria-autocomplete="list"
+                   aria-controls="{{ field }}customer-results"
+                   data-customer-picker="{{ search_url }}">
+
+            {# The chosen profile, when the picker was used. Empty means the
+               server should match the details below to an existing customer. #}
+            <input type="hidden" name="customerId" value="{{ form.customerId ?? '' }}"
+                   data-customer-id>
+
+            <div class="list-group position-absolute w-100"
+                 id="{{ field }}customer-results" role="listbox"
+                 style="z-index: 1050" hidden
+                 data-customer-results></div>
+        </div>
+
+        {% if errors.customerName is defined %}
+            <div class="invalid-feedback d-block">{{ errors.customerName }}</div>
+        {% elseif form.customerId %}
+            <div class="form-text">Linked to an existing customer profile.</div>
+        {% else %}
+            <div class="form-text">&nbsp;</div>
+        {% endif %}
+    </div>
+
+    <div class="{{ col }}">
+        <label for="{{ field }}customer-phone" class="form-label">
+            Phone <span class="required-mark" aria-hidden="true">*</span>
+        </label>
+        <input type="tel" id="{{ field }}customer-phone" name="customerPhone"
+               value="{{ form.customerPhone }}"
+               class="form-control {{ errors.customerPhone is defined ? 'is-invalid' }}"
+               maxlength="40" required autocomplete="off" placeholder="+63 917 555 0134">
+        {% if errors.customerPhone is defined %}
+            <div class="invalid-feedback">{{ errors.customerPhone }}</div>
+        {% else %}
+            <div class="form-text">&nbsp;</div>
+        {% endif %}
+    </div>
+
+    <div class="{{ col }}">
+        <label for="{{ field }}starts-at" class="form-label">
+            Time
+        </label>
+        <input type="time" id="{{ field }}starts-at" name="startsAt"
+               value="{{ form.startsAt }}"
+               class="form-control {{ errors.startsAt is defined ? 'is-invalid' }}"
+               autocomplete="off">
+        {% if errors.startsAt is defined %}
+            <div class="invalid-feedback">{{ errors.startsAt }}</div>
+        {% else %}
+            <div class="form-text">Leave blank if no time is agreed yet.</div>
+        {% endif %}
+    </div>
+
+    <div class="{{ col }}">
+        <label for="{{ field }}customer-email" class="form-label">
+            Email
+        </label>
+        <input type="email" id="{{ field }}customer-email" name="customerEmail"
+               value="{{ form.customerEmail }}"
+               class="form-control {{ errors.customerEmail is defined ? 'is-invalid' }}"
+               maxlength="180" autocomplete="off" placeholder="name@example.com">
+        {% if errors.customerEmail is defined %}
+            <div class="invalid-feedback">{{ errors.customerEmail }}</div>
+        {% else %}
+            <div class="form-text">&nbsp;</div>
+        {% endif %}
+    </div>
+
+    <div class="{{ colFull }}">
+        <label for="{{ field }}details" class="form-label">
+            Notes
+        </label>
+        <textarea id="{{ field }}details" name="details" rows="3" maxlength="2000"
+                  class="form-control {{ errors.details is defined ? 'is-invalid' }}"
+                  placeholder="Anything worth remembering about this booking">{{ form.details }}</textarea>
+        {% if errors.details is defined %}
+            <div class="invalid-feedback">{{ errors.details }}</div>
+        {% endif %}
+    </div>
+</div>

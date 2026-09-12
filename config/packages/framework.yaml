@@ -1,0 +1,23 @@
+# see https://symfony.com/doc/current/reference/configuration/framework.html
+framework:
+    secret: '%env(APP_SECRET)%'
+
+    # Note that the session will be started ONLY if you read or write from it.
+    session: true
+
+when@prod:
+    framework:
+        session:
+            # Sessions live in the database, not in var/sessions: a container
+            # platform's filesystem is thrown away on every deploy and every
+            # scale-to-zero, and with file sessions that signs everyone out and
+            # invalidates every open form's CSRF token each time. The handler is
+            # wired in config/services.yaml; the table is created by the
+            # migrations, alongside the application's own.
+            handler_id: Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
+
+when@test:
+    framework:
+        test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file

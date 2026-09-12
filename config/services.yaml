@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+# See also https://symfony.com/doc/current/service_container/import.html
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    # How many bookings one page of the dashboard - and one page of the
+    # calendar's progressive fetch - carries.
+    app.bookings.per_page: '%env(int:BOOKINGS_PER_PAGE)%'
+
+    # How many customers one page of the directory carries.
+    app.customers.per_page: '%env(int:CUSTOMERS_PER_PAGE)%'
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        bind:
+            int $bookingsPerPage: '%app.bookings.per_page%'
+            int $customersPerPage: '%app.customers.per_page%'
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+when@prod:
+    services:
+        # Sessions in the `sessions` table (see framework.yaml), over the same
+        # connection Doctrine uses, so one DATABASE_URL - TLS options included -
+        # configures everything. The handler is given the PDO instance rather
+        # than a DSN string: its own URL parser drops the query string, which
+        # is where a managed database's `sslmode=require` lives.
+        #
+        # Advisory locking, not the default transactional locking: that one
+        # holds a transaction open on the shared connection for the whole
+        # request, and Doctrine's flush() would then fail to start its own.
+        Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler:
+            arguments:
+                $pdoOrDsn: !service
+                    class: PDO
+                    factory: ['@doctrine.dbal.default_connection', 'getNativeConnection']
+                $options:
+                    db_table: sessions
+                    lock_mode: !php/const Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler::LOCK_ADVISORY

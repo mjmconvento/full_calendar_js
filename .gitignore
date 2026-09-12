@@ -1,0 +1,28 @@
+
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
+
+###> symfony/asset-mapper ###
+/public/assets/
+# /assets/vendor/ is intentionally NOT ignored: the importmap dependencies are
+# committed so builds and CI never depend on a CDN being reachable. Run
+# `php bin/console importmap:install` after changing importmap.php.
+###< symfony/asset-mapper ###
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
+
+###> ide ###
+/.idea/
+/.vscode/
+###< ide ###
+.DS_Store

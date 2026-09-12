@@ -1,0 +1,116 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Create an account · Booking Calendar{% endblock %}
+
+{% block body %}
+    <div class="auth-shell">
+        <div class="auth-card">
+            <div class="auth-head">
+                <span class="brand-mark" aria-hidden="true">📅</span>
+                <h1 class="auth-title">Create an account</h1>
+                <p class="auth-sub">An account is what stands between the calendar and the open internet.</p>
+            </div>
+
+            <div class="p-4">
+                {% if errors._ is defined %}
+                    <div class="alert alert-danger" role="alert">{{ errors._ }}</div>
+                {% endif %}
+
+                <form method="post" action="{{ path('app_register') }}" novalidate>
+                    <div class="mb-3">
+                        <label for="firstName" class="form-label">
+                            First name <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <input type="text" id="firstName" name="firstName"
+                               value="{{ values.firstName|default('') }}"
+                               class="form-control {{ errors.firstName is defined ? 'is-invalid' }}"
+                               autocomplete="given-name" required autofocus>
+                        {% if errors.firstName is defined %}
+                            <div class="invalid-feedback">{{ errors.firstName }}</div>
+                        {% else %}
+                            <div class="form-text">&nbsp;</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="middleName" class="form-label">Middle name</label>
+                        <input type="text" id="middleName" name="middleName"
+                               value="{{ values.middleName|default('') }}"
+                               class="form-control {{ errors.middleName is defined ? 'is-invalid' }}"
+                               autocomplete="additional-name">
+                        {% if errors.middleName is defined %}
+                            <div class="invalid-feedback">{{ errors.middleName }}</div>
+                        {% else %}
+                            <div class="form-text">Optional.</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="lastName" class="form-label">
+                            Last name <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <input type="text" id="lastName" name="lastName"
+                               value="{{ values.lastName|default('') }}"
+                               class="form-control {{ errors.lastName is defined ? 'is-invalid' }}"
+                               autocomplete="family-name" required>
+                        {% if errors.lastName is defined %}
+                            <div class="invalid-feedback">{{ errors.lastName }}</div>
+                        {% else %}
+                            <div class="form-text">&nbsp;</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">
+                            Email address <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <input type="email" id="email" name="email" value="{{ values.email|default('') }}"
+                               class="form-control {{ errors.email is defined ? 'is-invalid' }}"
+                               autocomplete="email" required placeholder="name@example.com">
+                        {% if errors.email is defined %}
+                            <div class="invalid-feedback">{{ errors.email }}</div>
+                        {% else %}
+                            <div class="form-text">This is what you sign in with.</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            Password <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <input type="password" id="password" name="password"
+                               class="form-control {{ errors.password is defined ? 'is-invalid' }}"
+                               autocomplete="new-password" required>
+                        {% if errors.password is defined %}
+                            <div class="invalid-feedback">{{ errors.password }}</div>
+                        {% else %}
+                            <div class="form-text">At least 8 characters.</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="passwordConfirmation" class="form-label">
+                            Repeat password <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <input type="password" id="passwordConfirmation" name="passwordConfirmation"
+                               class="form-control {{ errors.passwordConfirmation is defined ? 'is-invalid' }}"
+                               autocomplete="new-password" required>
+                        {% if errors.passwordConfirmation is defined %}
+                            <div class="invalid-feedback">{{ errors.passwordConfirmation }}</div>
+                        {% else %}
+                            <div class="form-text">&nbsp;</div>
+                        {% endif %}
+                    </div>
+
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('register') }}">
+
+                    <button type="submit" class="btn btn-primary w-100">Create account</button>
+                </form>
+            </div>
+
+            <div class="card-footer text-center small">
+                Already registered? <a href="{{ path('app_login') }}">Sign in</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

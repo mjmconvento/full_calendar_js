@@ -1,0 +1,12 @@
+{# Flashed by the pages that redirect after a successful action. base.html.twig
+   renders this above every page; the sign-in screens, which have no page chrome
+   to hang an alert on, render it inside their card instead. Reading app.flashes
+   consumes them, so each request renders this once. #}
+{% for type, messages in app.flashes %}
+    {% for message in messages %}
+        <div class="alert alert-{{ type == 'success' ? 'success' : 'danger' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endfor %}

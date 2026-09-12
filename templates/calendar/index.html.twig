@@ -1,0 +1,225 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Calendar · Booking Calendar{% endblock %}
+
+{% block stylesheets %}
+    <link rel="stylesheet" href="{{ asset('fullcalendar/skeleton.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('fullcalendar/theme-classic.css') }}">
+    <link rel="stylesheet" href="{{ asset('fullcalendar/theme-classic-palette.css') }}">
+{% endblock %}
+
+{% block javascripts %}
+    {# FullCalendar 7 ships self-contained global bundles for script-tag use.
+       Classic scripts run during parsing, so window.FullCalendar is populated
+       before the deferred app module below reads it. #}
+    <script src="{{ asset('fullcalendar/fullcalendar-all.global.min.js') }}"></script>
+    <script src="{{ asset('fullcalendar/theme-classic.global.min.js') }}"></script>
+    {{ parent() }}
+{% endblock %}
+
+{% block body %}
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Calendar</h1>
+            <p class="page-meta">Click a free day to book it, or a day with bookings to read it in full.</p>
+        </div>
+
+        <a class="btn btn-sm btn-outline-secondary" href="{{ path('app_day', {date: focus_date}) }}">
+            Open {{ focus_date|date('j F') }}
+        </a>
+    </div>
+
+    {# Everything the JavaScript needs is handed over as data attributes, so no
+       URL or setting is hard-coded in the asset bundle.
+
+       The day URL is generated for a real placeholder date because the route's
+       requirement is checked when the URL is generated, and the script swaps the
+       last path segment for the date it wants. #}
+    <div class="card">
+        <div class="card-body">
+            <div
+                id="calendar"
+                data-bookings-per-page="{{ bookings_per_page }}"
+                data-focus-date="{{ focus_date }}"
+                data-day-url="{{ path('app_day', {date: '1970-01-01'}) }}"
+                data-reservations-url="{{ path('api_reservations_index') }}"
+            ></div>
+        </div>
+    </div>
+
+    {# Live region: replaces the legacy "error modal" that interrupted the user. #}
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="notice" class="toast align-items-center border-0" role="status" aria-live="polite" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="notice-body"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="create-modal" tabindex="-1" aria-labelledby="create-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" id="create-form" novalidate>
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="create-modal-title">Add reservation</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-quiet small" id="create-day"></p>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <label for="create-customer-name" class="form-label">Customer</label>
+
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="create-customer-name" name="customerName"
+                                       maxlength="120" required autocomplete="off"
+                                       role="combobox" aria-expanded="false" aria-autocomplete="list"
+                                       aria-controls="create-customer-results"
+                                       data-customer-picker="{{ path('api_customers_index') }}">
+                                <input type="hidden" name="customerId" value="" data-customer-id>
+                                <div class="list-group position-absolute w-100 shadow-sm"
+                                     id="create-customer-results" role="listbox"
+                                     style="z-index: 10; max-height: 14rem; overflow-y: auto" hidden
+                                     data-customer-results></div>
+                            </div>
+
+                            <div class="invalid-feedback d-block" hidden>A name is required.</div>
+                            <div class="form-text" data-customer-status></div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="create-starts-at" class="form-label">
+                                Time
+                            </label>
+                            <input type="time" class="form-control" id="create-starts-at" name="startsAt" autocomplete="off">
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="create-customer-phone" class="form-label">
+                                Phone
+                            </label>
+                            <input type="tel" class="form-control" id="create-customer-phone" name="customerPhone"
+                                   maxlength="40" required autocomplete="off">
+                            <div class="invalid-feedback">A phone number is required. Use digits, spaces and + ( ) . - only.</div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="create-customer-email" class="form-label">
+                                Email
+                            </label>
+                            <input type="email" class="form-control" id="create-customer-email" name="customerEmail"
+                                   maxlength="180" autocomplete="off">
+                            <div class="invalid-feedback">That does not look like an email address.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="create-details" class="form-label">
+                                Notes
+                            </label>
+                            <textarea class="form-control" id="create-details" name="details" rows="3" maxlength="2000"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <span class="form-text"><span class="required-mark">*</span> required</span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Book</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade" id="edit-modal" tabindex="-1" aria-labelledby="edit-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" id="edit-form" novalidate>
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="edit-modal-title">Edit reservation</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-quiet small d-flex justify-content-between align-items-baseline gap-2">
+                        <span id="edit-day"></span>
+                        {# The dialog is deliberately not the place for everything:
+                           the day view shows a day's bookings side by side. #}
+                        <a href="#" id="edit-day-link" class="text-nowrap">Open day view</a>
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <label for="edit-customer-name" class="form-label">Customer</label>
+
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="edit-customer-name" name="customerName"
+                                       maxlength="120" required autocomplete="off"
+                                       role="combobox" aria-expanded="false" aria-autocomplete="list"
+                                       aria-controls="edit-customer-results"
+                                       data-customer-picker="{{ path('api_customers_index') }}">
+                                <input type="hidden" name="customerId" value="" data-customer-id>
+                                <div class="list-group position-absolute w-100 shadow-sm"
+                                     id="edit-customer-results" role="listbox"
+                                     style="z-index: 10; max-height: 14rem; overflow-y: auto" hidden
+                                     data-customer-results></div>
+                            </div>
+
+                            <div class="invalid-feedback d-block" hidden>A name is required.</div>
+                            <div class="form-text" data-customer-status></div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="edit-starts-at" class="form-label">
+                                Time
+                            </label>
+                            <input type="time" class="form-control" id="edit-starts-at" name="startsAt" autocomplete="off">
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="edit-customer-phone" class="form-label">
+                                Phone
+                            </label>
+                            <input type="tel" class="form-control" id="edit-customer-phone" name="customerPhone"
+                                   maxlength="40" required autocomplete="off">
+                            <div class="invalid-feedback">A phone number is required. Use digits, spaces and + ( ) . - only.</div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="edit-customer-email" class="form-label">
+                                Email
+                            </label>
+                            <input type="email" class="form-control" id="edit-customer-email" name="customerEmail"
+                                   maxlength="180" autocomplete="off">
+                            <div class="invalid-feedback">That does not look like an email address.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit-details" class="form-label">
+                                Notes
+                            </label>
+                            <textarea class="form-control" id="edit-details" name="details" rows="3" maxlength="2000"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-outline-danger" id="cancel-reservation">Cancel booking</button>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="form-text"><span class="required-mark">*</span> required</span>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="confirm-modal-title">Cancel booking</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Cancel the reservation for <strong id="confirm-name"></strong>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep it</button>
+                    <button type="button" class="btn btn-danger" id="confirm-cancel">Cancel booking</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

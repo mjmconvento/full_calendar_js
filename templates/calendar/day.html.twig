@@ -1,0 +1,204 @@
+{% extends 'base.html.twig' %}
+
+{% set day = schedule.date|date('Y-m-d') %}
+{% set is_today = day == today %}
+
+{% block title %}{{ schedule.date|date('j F Y') }} · Booking Calendar{% endblock %}
+
+{% block body %}
+    {# Values for a form that has not been submitted yet. Kept in one place so
+       the "book this day" form and each edit form start out identical. #}
+    {% set blank = {
+        customerName: '',
+        customerPhone: '',
+        customerEmail: '',
+        startsAt: '',
+        details: '',
+        customerId: null,
+    } %}
+
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">
+                {{ schedule.date|date('l, j F Y') }}
+                {% if is_today %}<span class="badge text-bg-primary align-middle ms-1">Today</span>{% endif %}
+            </h1>
+            <p class="page-meta">
+                {{ schedule.count }} booking{{ schedule.count == 1 ? '' : 's' }} on this day
+            </p>
+        </div>
+
+        <div class="btn-group">
+            <a class="btn btn-sm btn-outline-secondary"
+               href="{{ path('app_day', {date: schedule.date|date_modify('-1 day')|date('Y-m-d')}) }}"
+               rel="prev">&larr; Previous</a>
+            {% if not is_today %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('app_day', {date: today}) }}">Today</a>
+            {% endif %}
+            <a class="btn btn-sm btn-outline-secondary"
+               href="{{ path('app_day', {date: schedule.date|date_modify('+1 day')|date('Y-m-d')}) }}"
+               rel="next">Next &rarr;</a>
+        </div>
+    </div>
+
+    {% if errors._ is defined %}
+        <div class="alert alert-danger" role="alert">{{ errors._ }}</div>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-7 col-xl-8">
+            {% if schedule.isEmpty %}
+                <div class="card mb-4">
+                    <div class="empty-state">
+                        <div class="empty-state-icon" aria-hidden="true">🗓️</div>
+                        <p class="empty-state-title">Nothing booked on this day</p>
+                        <p class="empty-state-text">Use the form to take the first booking.</p>
+                    </div>
+                </div>
+            {% else %}
+                <ul class="timeline mb-4">
+                    {% for reservation in schedule.reservations %}
+                        {% set editing = open_edit_id == reservation.id %}
+                        {% set form_id = 'edit-' ~ reservation.id %}
+
+                        <li class="timeline-item">
+                            <div class="timeline-time {{ reservation.startsAt ? '' : 'timeline-time-none' }}">
+                                {{ reservation.formattedStartsAt ?? 'No time' }}
+                            </div>
+
+                            <div class="timeline-card">
+                                <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                                    <div>
+                                        <h2 class="timeline-name">
+                                            <a class="row-title" href="{{ path('app_customer', {id: reservation.customer.id}) }}">
+                                                {{ reservation.customerName }}
+                                            </a>
+                                        </h2>
+
+                                        <div class="timeline-contact">
+                                            {% if reservation.customerPhone %}
+                                                <a class="contact-link" href="tel:{{ reservation.customerPhone }}">{{ reservation.customerPhone }}</a>
+                                            {% else %}
+                                                <span class="text-quiet">No phone number on file</span>
+                                            {% endif %}
+                                            {% if reservation.customerEmail %}
+                                                <span class="text-faint"> · </span>
+                                                <a class="contact-link" href="mailto:{{ reservation.customerEmail }}">{{ reservation.customerEmail }}</a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                data-bs-toggle="collapse" data-bs-target="#{{ form_id }}"
+                                                aria-expanded="{{ editing ? 'true' : 'false' }}" aria-controls="{{ form_id }}">
+                                            Edit
+                                        </button>
+
+                                        <form method="post" action="{{ path('app_day', {date: day}) }}"
+                                              data-confirm="{{ reservation.customerName }}">
+                                            <input type="hidden" name="intent" value="cancel">
+                                            <input type="hidden" name="id" value="{{ reservation.id }}">
+                                            <input type="hidden" name="_csrf_token" value="{{ csrf_token('cancel-' ~ reservation.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                {% if reservation.details %}
+                                    <p class="timeline-notes">{{ reservation.details }}</p>
+                                {% endif %}
+
+                                <div class="collapse mt-3 {{ editing ? 'show' }}" id="{{ form_id }}">
+                                    <hr class="divider">
+                                    <form method="post" action="{{ path('app_day', {date: day}) }}" novalidate>
+                                        <input type="hidden" name="intent" value="revise">
+                                        <input type="hidden" name="id" value="{{ reservation.id }}">
+                                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('revise-' ~ reservation.id) }}">
+
+                                        {% include 'calendar/_booking_fields.html.twig' with {
+                                            form: editing and form ? form : {
+                                                customerName: reservation.customerName,
+                                                customerPhone: reservation.customerPhone,
+                                                customerEmail: reservation.customerEmail,
+                                                startsAt: reservation.startsAt ? reservation.startsAt|date('H:i') : '',
+                                                details: reservation.details,
+                                                customerId: reservation.customer.id,
+                                            },
+                                            errors: editing ? errors : {},
+                                            prefix: form_id,
+                                            search_url: path('api_customers_index'),
+                                            wide: true,
+                                        } only %}
+
+                                        <p class="form-text mb-2">
+                                            <span class="required-mark">*</span> required
+                                        </p>
+
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-primary">Save changes</button>
+                                            <button type="reset" class="btn btn-outline-secondary"
+                                                    data-bs-toggle="collapse" data-bs-target="#{{ form_id }}">Discard</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="col-12 col-lg-5 col-xl-4">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Book this day</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ path('app_day', {date: day}) }}" novalidate>
+                        <input type="hidden" name="intent" value="book">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token(book_token) }}">
+
+                        {% include 'calendar/_booking_fields.html.twig' with {
+                            form: open_edit_id is null and form ? form : blank,
+                            errors: open_edit_id is null ? errors : {},
+                            prefix: 'create',
+                            search_url: path('api_customers_index'),
+                        } only %}
+
+                        <p class="form-text mb-2">
+                            <span class="required-mark">*</span> required
+                        </p>
+
+                        <button type="submit" class="btn btn-primary w-100">Book this day</button>
+                    </form>
+                </div>
+
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span class="text-quiet small">See this day in the month view</span>
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ path('calendar', {day: day}) }}">
+                        Show in calendar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="day-confirm" tabindex="-1" aria-labelledby="day-confirm-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="day-confirm-title">Cancel booking</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Cancel the reservation for <strong data-confirm-name></strong>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep it</button>
+                    <button type="button" class="btn btn-danger" data-confirm-proceed>Cancel booking</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Customers · Booking Calendar{% endblock %}
+
+{% block body %}
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Customers</h1>
+        </div>
+    </div>
+
+    {# The form still submits the ordinary way - the page's script only
+       improves on it: it searches as the operator types instead of making them
+       press the button. #}
+    <form class="card mb-3" method="get" action="{{ path('app_customers') }}" role="search">
+        <div class="card-body">
+            <label for="customer-search" class="form-label">Search</label>
+            <div class="input-group">
+                <input type="search" id="customer-search" name="q" value="{{ query }}" class="form-control"
+                       placeholder="Name, phone number or email" aria-label="Search customers"
+                       aria-controls="customer-results" autofocus>
+                <button type="submit" class="btn btn-primary">Search</button>
+                <a class="btn btn-outline-secondary" href="{{ path('app_customers') }}"
+                   data-customer-clear{% if query is empty %} hidden{% endif %}>Clear</a>
+            </div>
+        </div>
+    </form>
+
+    <div id="customer-results">
+        {{ include('customer/_results.html.twig') }}
+    </div>
+{% endblock %}

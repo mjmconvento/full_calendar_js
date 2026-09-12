@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Check your inbox · Booking Calendar{% endblock %}
+
+{# Rendered inside the card instead, where the eye already is. #}
+{% block flashes %}{% endblock %}
+
+{% block body %}
+    <div class="auth-shell">
+        <div class="auth-card">
+            <div class="auth-head">
+                <span class="brand-mark" aria-hidden="true">📧</span>
+                <h1 class="auth-title">Check your inbox</h1>
+                <p class="auth-sub">One more step before you can sign in.</p>
+            </div>
+
+            <div class="p-4">
+                {{ include('_flashes.html.twig') }}
+
+                <p>
+                    {% if email %}
+                        We sent a verification link to <strong>{{ email }}</strong>.
+                    {% else %}
+                        We sent a verification link to the address you registered with.
+                    {% endif %}
+                    Follow it within {{ lifetimeMinutes }} minutes to finish creating your account.
+                </p>
+
+                <p class="text-quiet small">
+                    Nothing there? Give it a minute and check your spam folder. If it still has not
+                    arrived, ask for a new link. Only one link is sent per minute.
+                </p>
+
+                <form method="post" action="{{ path('app_verify_email_resend') }}" novalidate>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <input type="email" id="email" name="email" value="{{ email }}"
+                               class="form-control" autocomplete="email" required
+                               placeholder="name@example.com">
+                    </div>
+
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('resend-verification') }}">
+
+                    <button type="submit" class="btn btn-outline-primary w-100">Send a new link</button>
+                </form>
+            </div>
+
+            <div class="card-footer text-center small">
+                Already verified? <a href="{{ path('app_login') }}">Sign in</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

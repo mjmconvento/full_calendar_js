@@ -1,0 +1,47 @@
+doctrine:
+    dbal:
+        url: '%env(resolve:DATABASE_URL)%'
+
+        # The server version lives in DATABASE_URL (`?serverVersion=18`) so
+        # Doctrine can pick the right SQL dialect without connecting first.
+        profiling_collect_backtrace: '%kernel.debug%'
+
+        # `sessions` belongs to PdoSessionHandler (config/services.yaml), not to
+        # an entity, so schema:validate and migrations:diff must not offer to
+        # drop it. The migrations create it explicitly.
+        schema_filter: '~^(?!sessions$)~'
+    orm:
+        validate_xml_mapping: true
+        naming_strategy: doctrine.orm.naming_strategy.underscore
+        auto_mapping: true
+        mappings:
+            App:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Entity'
+                prefix: 'App\Entity'
+                alias: App
+
+when@test:
+    doctrine:
+        dbal:
+            # "TEST_TOKEN" is typically set by ParaTest
+            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+
+when@prod:
+    doctrine:
+        orm:
+            query_cache_driver:
+                type: pool
+                pool: doctrine.system_cache_pool
+            result_cache_driver:
+                type: pool
+                pool: doctrine.result_cache_pool
+
+    framework:
+        cache:
+            pools:
+                doctrine.result_cache_pool:
+                    adapter: cache.app
+                doctrine.system_cache_pool:
+                    adapter: cache.system

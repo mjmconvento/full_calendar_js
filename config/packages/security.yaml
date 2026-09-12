@@ -1,0 +1,77 @@
+security:
+    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    # Accounts live in the database (see App\Entity\User). There is no
+    # in-memory user left: the app shipped with no accounts at all, so there is
+    # nothing to stay compatible with.
+    providers:
+        accounts:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    firewalls:
+        dev:
+            # Ensure dev tools and static assets are always allowed
+            pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
+        main:
+            lazy: true
+            provider: accounts
+
+            # Refuses an account whose email address has not been verified,
+            # after the password has been checked so the refusal cannot be used
+            # to tell registered addresses from unknown ones.
+            user_checker: App\Security\VerifiedEmailChecker
+
+            # Answers with 401 problem+json when the calendar's fetch client is
+            # signed out, and redirects a browser to the sign-in form.
+            entry_point: App\Security\SessionEntryPoint
+
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                # The sign-in form carries csrf_token('authenticate').
+                enable_csrf: true
+                default_target_path: app_dashboard
+
+            logout:
+                path: app_logout
+                target: app_login
+                # The sign-out control is a POST form carrying
+                # csrf_token('logout'), so a stray <img src="/logout"> cannot
+                # end an operator's session.
+                enable_csrf: true
+
+            remember_me:
+                secret: '%kernel.secret%'
+                # Two weeks, so a reception desk is not asked to sign in daily.
+                lifetime: 1209600
+                # A cookie-based remember-me token cannot be revoked on its own;
+                # binding its signature to the password hash means changing the
+                # password retires every token issued before the change.
+                signature_properties: [password]
+
+    # Only signing in, signing up, the email verification round-trip and the
+    # platform health check are public. The calendar, the dashboard, the day
+    # page and the whole JSON API require an account: in the 2016 app they were
+    # reachable by anyone who guessed the URL.
+    access_control:
+        - { path: ^/(login|logout|register|verify-email|healthz)(/|$), roles: PUBLIC_ACCESS }
+        # AssetMapper's compiled CSS and JavaScript must load for the sign-in
+        # page to render at all.
+        - { path: ^/assets/, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: ROLE_USER }
+
+when@test:
+    security:
+        password_hashers:
+            # Password hashers are resource-intensive by design to ensure security.
+            # In tests, it's safe to reduce their cost to improve performance.
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4 # Lowest possible value for bcrypt
+                time_cost: 3 # Lowest possible value for argon
+                memory_cost: 10 # Lowest possible value for argon

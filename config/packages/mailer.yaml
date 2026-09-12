@@ -1,0 +1,12 @@
+framework:
+    mailer:
+        # null://null locally (nothing is delivered; see app:verification-link),
+        # brevo+api://KEY@default in production. The API transport speaks HTTPS,
+        # so it works from hosts that block outbound SMTP ports.
+        dsn: '%env(MAILER_DSN)%'
+
+        # Every message the app sends comes from this address. With Brevo it
+        # must be exactly a sender validated in that account, or the API
+        # answers 400 "sender not valid".
+        headers:
+            From: '%env(MAILER_FROM)%'
