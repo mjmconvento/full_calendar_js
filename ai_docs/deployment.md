@@ -299,16 +299,16 @@ APP_URL=https://booking-calendar.onrender.com    # Render service name: booking-
 name is taken on Render you will be offered `booking-calendar-xxxx`; that is fine,
 just use the URL Render gives you wherever `APP_URL` appears below.
 
-Render deploys from GitHub, from the repository's `master` branch (its default).
-The Symfony rewrite - `src/`, `config/`, `Dockerfile`, `render.yaml` and the rest -
-was committed and pushed there on 2026-09-12, replacing the 2016 files. Before
-every later deploy, the same rule: commit everything except secrets and push.
+Render deploys from GitHub, from the repository's `main` branch. The Symfony
+rewrite - `src/`, `config/`, `Dockerfile`, `render.yaml` and the rest - was
+committed and pushed there on 2026-09-12, replacing the 2016 files. Before every
+later deploy, the same rule: commit everything except secrets and push.
 
 ```bash
 git add -A
 git status                      # .env is committed on purpose (defaults only); .env.local is ignored
 git commit -m "..."
-git push origin master
+git push origin main
 ```
 
 Never commit `.env.local`, database URLs with passwords, or `APP_SECRET`.
@@ -353,7 +353,7 @@ costs.
 ### 4. Deploy - Render
 
 1. <https://dashboard.render.com> → **New → Blueprint** → connect the
-   `mjmconvento/full_calendar_js` repository, branch `master`. Render reads
+   `mjmconvento/full_calendar_js` repository, branch `main`. Render reads
    `render.yaml`.
 2. Before applying, edit `render.yaml`'s `MAILER_FROM` placeholder to your
    validated sender (it is not a secret, so it lives in the file) - or set it
