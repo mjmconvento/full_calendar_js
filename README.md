@@ -20,8 +20,9 @@ Around that calendar sit three screens the original never had:
   come do not count towards that - and it filters as the operator types and pages in place.
 
 Everything except signing in and signing up requires an account, and a new account has to
-verify its email address - by following the link sent to it - before it can sign in. The
-setup for that, Brevo included, is in [`ai_docs/email-verification.md`](ai_docs/email-verification.md).
+verify its email address - by following the link sent to it - before it can sign in. Email
+leaves through Brevo's HTTPS API in production and lands in Mailpit locally; the variables
+are in [Configuration](#configuration).
 
 This repository started life in 2016 as three PHP files (`index.php`, `process.php`,
 `config.php`) talking to MySQL through `mysqli` with request data interpolated straight
@@ -336,8 +337,6 @@ explicitly.
 ## Project layout
 
 ```
-ai_docs/
-  email-verification.md        Brevo setup, host variables, the design and its failure modes
 assets/
   app.js                       AssetMapper entrypoint (Bootstrap CSS, app CSS, boot)
   paged-results.js             in-place paging + as-you-type filtering for the two cards
@@ -360,7 +359,7 @@ docker/
   postgres/init/               creates booking_calendar_test on first start
 migrations/
   Version20260912150000.php    the whole PostgreSQL schema, sessions table included
-render.yaml                    Render Blueprint (see ai_docs/deployment.md)
+render.yaml                    Render Blueprint (see "Deploying it")
 src/
   Api/                         request DTOs (validated), date parsing, JSON presenters
   Booking/                     ReservationBooker, CustomerResolver, DaySchedule, metrics
@@ -414,10 +413,33 @@ Makefile
 ## Deploying it
 
 One container on Render's free plan, the database on Neon (managed PostgreSQL), email through
-Brevo's HTTPS API. The Dockerfile's last stage, `render`, puts nginx and php-fpm in one
-container answering on `$PORT`; `render.yaml` is the Blueprint. The full walkthrough - what
-had to change in this repo, the variables, the measured cost and cold-start figures, and
-what to do when it breaks - is [`ai_docs/deployment.md`](ai_docs/deployment.md).
+Brevo's HTTPS API. The Dockerfile's last stage, `render`, puts nginx and php-fpm under
+supervisord in one container answering HTTP on `$PORT`, sized for 512 MB / 0.1 CPU
+(`docker/php/render-*.{ini,conf}`); `render.yaml` is the Blueprint, region Singapore.
+
+What a deploy needs, in order:
+
+1. A Neon project (Postgres 18, Singapore). Use the **direct** connection string, not the
+   `-pooler` one: the entrypoint runs the migrations at boot and the session handler takes
+   advisory locks, and PgBouncer's transaction pooling drops both. php-fpm opens at most four
+   connections here, so pooling would buy nothing anyway.
+2. A Brevo API key (the API key, not the SMTP key) and a validated sender address.
+3. **New → Blueprint** on Render, pointed at this repository's `main` branch. It prompts for
+   the four secrets - `APP_SECRET` (`openssl rand -hex 32`), `DATABASE_URL` (Neon direct, in
+   Doctrine form: `postgresql://…/neondb?serverVersion=18&charset=utf8&sslmode=require`),
+   `DEFAULT_URI` (the service's own `https://…onrender.com`) and `MAILER_DSN`
+   (`brevo+api://KEY@default`). `MAILER_FROM` is not a secret and lives in `render.yaml`;
+   set it to the validated sender before applying.
+4. Open `/register` on the live URL and create the first account through the verification
+   email. There is no shell on the free plan and none is needed: migrations run at boot,
+   sessions live in the `sessions` table so a restart signs nobody out, and `/healthz` is the
+   platform's probe (it touches neither the database nor the session, so it does not keep
+   Neon's compute awake).
+
+Expect a cold start of about a minute after fifteen idle minutes and roughly a second per
+page while warm: a tenth of a CPU is the plan's binding constraint. Registration stays open
+on the public URL - keep the address to yourself or add the invite check the
+`RegistrationController` docblock describes before handing it out.
 
 ---
 

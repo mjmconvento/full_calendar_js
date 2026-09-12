@@ -1,5 +1,6 @@
 # Render Blueprint — Booking Calendar.
-# See ai_docs/deployment.md for the full walkthrough.
+# The variables below are the whole deployment surface; the README's
+# "Deploying it" section walks through them in order.
 #
 # One service. The app is server-rendered Twig plus a few ES modules, so there
 # is no separate front end to host: nginx inside this container serves the
@@ -39,7 +40,7 @@ services:
 
           # Verification emails leave through Brevo's HTTPS API, because free
           # services cannot open outbound SMTP connections (ports 25/465/587).
-          # The key is prompted for below. See ai_docs/email-verification.md.
+          # The key is prompted for below.
           - key: MAILER_FROM
             value: Booking Calendar <REPLACE-WITH-YOUR-VALIDATED-BREVO-SENDER@gmail.com>
 
