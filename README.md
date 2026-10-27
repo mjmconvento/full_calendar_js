@@ -36,7 +36,7 @@ The behaviour of the original app is preserved; the way it is built is not.
 
 | Layer | Component | Version |
 | --- | --- | --- |
-| Runtime | PHP (`php:8.5.10-fpm-alpine3.24`) | 8.5.10 |
+| Runtime | PHP (`php:8.5.12-fpm-alpine3.24`) | 8.5.12 |
 | Framework | Symfony (framework-bundle) | 8.1.6 |
 | Templating | Twig | 3.28 |
 | ORM | Doctrine ORM / DBAL | 3.7 / 4.4 |
@@ -269,7 +269,7 @@ make assets                   # importmap:install + asset-map:compile
 
 ## Running it without Docker
 
-Requires PHP ≥ 8.4 with `pdo_pgsql` (or `pdo_sqlite`), `intl` and `zip`, plus Composer.
+Requires PHP ≥ 8.5 with `pdo_pgsql` (or `pdo_sqlite`), `intl` and `zip`, plus Composer.
 
 ```bash
 composer install

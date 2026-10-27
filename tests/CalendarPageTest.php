@@ -56,7 +56,7 @@ final class CalendarPageTest extends ApiTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(
-            (new \DateTimeImmutable('today'))->format('Y-m-d'),
+            new \DateTimeImmutable('today')->format('Y-m-d'),
             $crawler->filter('#calendar')->attr('data-focus-date'),
             'The thirtieth of February is not a date; the calendar falls back to today rather than moving the month.',
         );

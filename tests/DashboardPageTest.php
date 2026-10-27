@@ -72,6 +72,6 @@ final class DashboardPageTest extends ApiTestCase
 
     private function dayLabel(string $date): string
     {
-        return (new \DateTimeImmutable($date))->format('D, j M Y');
+        return new \DateTimeImmutable($date)->format('D, j M Y');
     }
 }

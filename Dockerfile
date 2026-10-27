@@ -18,7 +18,7 @@
 # ---------------------------------------------------------------------------
 # base — runtime extensions and configuration shared by every stage
 # ---------------------------------------------------------------------------
-FROM php:8.5.10-fpm-alpine3.24 AS base
+FROM php:8.5.12-fpm-alpine3.24 AS base
 
 # Runtime shared objects only. `fcgi` provides cgi-fcgi, used by HEALTHCHECK.
 #

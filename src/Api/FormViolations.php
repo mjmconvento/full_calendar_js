@@ -35,9 +35,7 @@ final readonly class FormViolations
         foreach ($this->validator->validate($form) as $violation) {
             $field = (string) $violation->getPropertyPath();
 
-            if (!isset($errors[$field])) {
-                $errors[$field] = (string) $violation->getMessage();
-            }
+            $errors[$field] ??= (string) $violation->getMessage();
         }
 
         return $errors;

@@ -21,21 +21,19 @@ final readonly class ReservationInput
     public string $customerName;
     public string $customerPhone;
     public ?string $customerEmail;
-    public ?\DateTimeImmutable $startsAt;
     public ?string $details;
 
     public function __construct(
         string $customerName,
         string $customerPhone,
         ?string $customerEmail = null,
-        ?\DateTimeImmutable $startsAt = null,
+        public ?\DateTimeImmutable $startsAt = null,
         ?string $details = null,
         public ?int $customerId = null,
     ) {
         $this->customerName = trim($customerName);
         $this->customerPhone = trim($customerPhone);
         $this->customerEmail = self::normalize($customerEmail);
-        $this->startsAt = $startsAt;
         $this->details = self::normalize($details);
     }
 

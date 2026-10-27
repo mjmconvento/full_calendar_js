@@ -36,15 +36,8 @@ class Reservation
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Customer::class, inversedBy: 'reservations')]
-    #[ORM\JoinColumn(name: 'customer_id', nullable: false, onDelete: 'RESTRICT')]
-    private Customer $customer;
-
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private \DateTimeImmutable $reservedOn;
-
-    #[ORM\Column(type: Types::TIME_IMMUTABLE, nullable: true)]
-    private ?\DateTimeImmutable $startsAt;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $details;
@@ -56,17 +49,17 @@ class Reservation
     private \DateTimeImmutable $updatedAt;
 
     public function __construct(
-        Customer $customer,
+        #[ORM\ManyToOne(targetEntity: Customer::class, inversedBy: 'reservations')]
+        #[ORM\JoinColumn(name: 'customer_id', nullable: false, onDelete: 'RESTRICT')]
+        private Customer $customer,
         \DateTimeImmutable $reservedOn,
-        ?\DateTimeImmutable $startsAt = null,
+        #[ORM\Column(type: Types::TIME_IMMUTABLE, nullable: true)]
+        private ?\DateTimeImmutable $startsAt = null,
         ?string $details = null,
         ?\DateTimeImmutable $now = null,
     ) {
         $now ??= new \DateTimeImmutable();
-
-        $this->customer = $customer;
         $this->reservedOn = $reservedOn->setTime(0, 0);
-        $this->startsAt = $startsAt;
         $this->details = self::normalize($details);
         $this->createdAt = $now;
         $this->updatedAt = $now;

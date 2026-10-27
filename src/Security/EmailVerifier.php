@@ -80,7 +80,7 @@ final readonly class EmailVerifier
      */
     public function send(User $user): void
     {
-        $email = (new TemplatedEmail())
+        $email = new TemplatedEmail()
             ->to(new Address($user->getEmail(), $user->getDisplayName()))
             ->subject('Verify your email address')
             ->htmlTemplate('emails/verify_email.html.twig')

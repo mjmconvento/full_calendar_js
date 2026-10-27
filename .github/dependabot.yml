@@ -1,0 +1,57 @@
+# Dependabot version updates.
+# Dependabot is built into GitHub — this file is all that is needed to get
+# update pull requests. Security-only updates additionally require the
+# "Dependabot security updates" toggle in the repository settings.
+#
+# Front-end packages come from Symfony AssetMapper (importmap.php), which
+# Dependabot does not support. Update those by hand:
+#   make console ARGS="importmap:outdated"
+#   make console ARGS="importmap:update"
+version: 2
+updates:
+  # Symfony app (composer.json / composer.lock).
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      php-runtime:
+        dependency-type: production
+        update-types: [minor, patch]
+      php-tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  # Base images in the Dockerfile (php, composer, nginx).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
+    ignore:
+      # PHP is pinned to an exact 8.5.x patch. Only patch bumps (8.5.13, ...)
+      # should arrive as PRs; a new PHP minor/major means new deprecations and
+      # composer.json's "php" constraint, so it is a planned upgrade, not a PR.
+      - dependency-name: php
+        update-types:
+          ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      base-images:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Service images in compose.yaml / compose.override.yaml (postgres, mailpit).
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: monthly
+    ignore:
+      # A postgres major refuses to start against the existing data volume;
+      # it needs a dump/restore (or pg_upgrade), not a merged PR.
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+    groups:
+      service-images:
+        patterns: ["*"]
+        update-types: [minor, patch]
