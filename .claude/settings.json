@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(make test*)",
+      "Bash(make help*)",
+      "Bash(make logs*)",
+      "Bash(make console ARGS=\"debug:*)",
+      "Bash(make console ARGS=\"lint:*)",
+      "Bash(make console ARGS=\"doctrine:schema:validate*)",
+      "Bash(make console ARGS=\"doctrine:migrations:status*)",
+      "Bash(docker compose ps*)",
+      "Bash(docker compose logs*)",
+      "Bash(docker compose exec php vendor/bin/phpstan analyse*)",
+      "Bash(docker compose exec php vendor/bin/rector process --dry-run*)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(vendor/bin/phpstan analyse*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(make fixtures*)",
+      "Bash(make clean*)"
+    ],
+    "deny": [
+      "Read(./.env.local)",
+      "Read(./.env.*.local)",
+      "Read(./config/secrets/prod/prod.decrypt.private.php)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session_start.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pre_tool_use.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/post_tool_use.py\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

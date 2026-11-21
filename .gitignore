@@ -30,3 +30,8 @@
 ###> private notes ###
 /ai_docs/
 ###< private notes ###
+
+###> claude code ###
+/.claude/settings.local.json
+/.claude/hooks/__pycache__/
+###< claude code ###
